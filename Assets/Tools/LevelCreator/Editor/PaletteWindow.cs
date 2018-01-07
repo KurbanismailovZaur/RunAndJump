@@ -12,6 +12,7 @@ namespace RunAndJump.LevelCreator
         #endregion
 
         #region Delegates
+        public delegate void itemSelectedDelegate(PaletteItem item, Texture2D preview);
         #endregion
 
         #region Structures
@@ -47,6 +48,7 @@ namespace RunAndJump.LevelCreator
         #endregion
 
         #region Events
+        public static event itemSelectedDelegate ItemSelectedEvent;
         #endregion
 
         #region Behaviour
@@ -168,6 +170,11 @@ namespace RunAndJump.LevelCreator
             if (index != -1)
             {
                 PaletteItem selectedItem = _categorizedItems[_categorySelected][index];
+
+                if (ItemSelectedEvent != null)
+                {
+                    ItemSelectedEvent.Invoke(selectedItem, _previews[selectedItem]);
+                }
             }
         }
 

@@ -33,6 +33,10 @@ namespace RunAndJump.LevelCreator
 
         private SerializedObject _serializedLevel;
         private SerializedProperty _serializedTotalTime;
+
+        private PaletteItem _itemSelected;
+        private Texture2D _itemPreview;
+        private LevelPiece _pieceSelected;
         #endregion
 
         #region Events
@@ -52,12 +56,29 @@ namespace RunAndJump.LevelCreator
 
             InitLevel();
             ResetResizeValues();
+            SubscribeEvents();
+        }
+
+        private void SubscribeEvents()
+        {
+            PaletteWindow.ItemSelectedEvent += PaletteWindow_ItemSelectedEvent;
+        }
+
+        private void UnsubscribeEvent()
+        {
+            PaletteWindow.ItemSelectedEvent -= PaletteWindow_ItemSelectedEvent;
+        }
+
+        private void OnDisable()
+        {
+            UnsubscribeEvent();
         }
 
         public override void OnInspectorGUI()
         {
             DrawLevelDataGUI();
             DrawLevelSizeGUI();
+            DrawPieceSelectedGUI();
 
             if (GUI.changed)
             {
@@ -71,7 +92,6 @@ namespace RunAndJump.LevelCreator
 
             GUILayout.BeginVertical("Box");
 
-            //_level.TotalTime = EditorGUILayout.IntField("Total Time", Mathf.Max(0, _level.TotalTime));
             EditorGUILayout.PropertyField(_serializedTotalTime);
 
             _level.Gravity = EditorGUILayout.FloatField("Gravity", _level.Gravity);
@@ -80,6 +100,63 @@ namespace RunAndJump.LevelCreator
             GUILayout.EndVertical();
 
             _serializedLevel.ApplyModifiedProperties();
+        }
+
+        private void DrawLevelSizeGUI()
+        {
+            EditorGUILayout.LabelField("Size", EditorStyles.boldLabel);
+            GUILayout.BeginHorizontal("Box");
+
+            GUILayout.BeginVertical();
+            _newTotalColumns = EditorGUILayout.IntField("Columns", Mathf.Max(1, _newTotalColumns));
+            _newTotalRows = EditorGUILayout.IntField("Rows", Mathf.Max(1, _newTotalRows));
+
+            bool oldEnabled = GUI.enabled;
+            GUI.enabled = (_newTotalColumns != _level.TotalColumns || _newTotalRows != _level.TotalRows);
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical();
+            Color oldColor = GUI.color;
+            GUI.color = Color.green;
+            bool buttonResize = GUILayout.Button("Resize", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
+
+            if (buttonResize)
+            {
+                if (EditorUtility.DisplayDialog("Level Creator", "Are you sure you want to resize the level?\nThis action cannot be undone.", "Yes", "No"))
+                {
+                    ResizeLevel();
+                }
+            }
+
+            GUI.color = oldColor;
+            bool buttonReset = GUILayout.Button("Reset", GUILayout.Height(EditorGUIUtility.singleLineHeight));
+
+            if (buttonReset)
+            {
+                ResetResizeValues();
+            }
+            GUILayout.EndVertical();
+
+            GUILayout.EndHorizontal();
+
+            GUI.enabled = oldEnabled;
+        }
+
+        private void DrawPieceSelectedGUI()
+        {
+            EditorGUILayout.LabelField("Piece Selected", EditorStyles.boldLabel);
+
+            if (!_pieceSelected)
+            {
+                EditorGUILayout.HelpBox("No piece selected!", MessageType.Info);
+            }
+            else
+            {
+                EditorGUILayout.BeginVertical("box");
+                EditorGUILayout.LabelField(new GUIContent(_itemPreview), GUILayout.Height(40));
+                EditorGUILayout.LabelField(_itemSelected.ItemName);
+                EditorGUILayout.EndVertical();
+            }
         }
 
         private void InitLevel()
@@ -127,48 +204,21 @@ namespace RunAndJump.LevelCreator
             _level.TotalRows = _newTotalRows;
         }
 
-        private void DrawLevelSizeGUI()
+        private void UpdateCurrentPieceInstance(PaletteItem item, Texture2D preview)
         {
-            EditorGUILayout.LabelField("Size", EditorStyles.boldLabel);
-            GUILayout.BeginHorizontal("Box");
+            _itemSelected = item;
+            _itemPreview = preview;
+            _pieceSelected = (LevelPiece)item.GetComponent<LevelPiece>();
 
-            GUILayout.BeginVertical();
-            _newTotalColumns = EditorGUILayout.IntField("Columns", Mathf.Max(1, _newTotalColumns));
-            _newTotalRows = EditorGUILayout.IntField("Rows", Mathf.Max(1, _newTotalRows));
-
-            bool oldEnabled = GUI.enabled;
-            GUI.enabled = (_newTotalColumns != _level.TotalColumns || _newTotalRows != _level.TotalRows);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            Color oldColor = GUI.color;
-            GUI.color = Color.green;
-            bool buttonResize = GUILayout.Button("Resize", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2f));
-
-            if (buttonResize)
-            {
-                if (EditorUtility.DisplayDialog("Level Creator", "Are you sure you want to resize the level?\nThis action cannot be undone.", "Yes", "No"))
-                {
-                    ResizeLevel();
-                }
-            }
-
-            GUI.color = oldColor;
-            bool buttonReset = GUILayout.Button("Reset", GUILayout.Height(EditorGUIUtility.singleLineHeight));
-
-            if (buttonReset)
-            {
-                ResetResizeValues();
-            }
-            GUILayout.EndVertical();
-
-            GUILayout.EndHorizontal();
-
-            GUI.enabled = oldEnabled;
+            Repaint();
         }
         #endregion
 
         #region Events handlers
+        private void PaletteWindow_ItemSelectedEvent(PaletteItem item, Texture2D preview)
+        {
+            UpdateCurrentPieceInstance(item, preview);
+        }
         #endregion
         #endregion
     }
