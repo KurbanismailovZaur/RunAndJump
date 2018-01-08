@@ -10,6 +10,13 @@ namespace RunAndJump.LevelCreator
     {
         #region Entities
         #region Enums
+        public enum Mode
+        {
+            View,
+            Paint,
+            Edit,
+            Erase
+        }
         #endregion
 
         #region Delegates
@@ -37,6 +44,9 @@ namespace RunAndJump.LevelCreator
         private PaletteItem _itemSelected;
         private Texture2D _itemPreview;
         private LevelPiece _pieceSelected;
+
+        private Mode _selectedMode;
+        private Mode _currentMode;
         #endregion
 
         #region Events
@@ -211,6 +221,51 @@ namespace RunAndJump.LevelCreator
             _pieceSelected = (LevelPiece)item.GetComponent<LevelPiece>();
 
             Repaint();
+        }
+
+        private void DrawModeGUI()
+        {
+            List<Mode> modes = EditorUtils.GetListFromEnum<Mode>();
+            List<string> modeLabels = new List<string>();
+
+            foreach (Mode mode in modes)
+            {
+                modeLabels.Add(mode.ToString());
+            }
+
+            Handles.BeginGUI();
+            GUILayout.BeginArea(new Rect(10f, 10f, 360f, 40f));
+            _selectedMode = (Mode)GUILayout.Toolbar((int)_currentMode, modeLabels.ToArray(), GUILayout.ExpandHeight(true));
+            GUILayout.EndArea();
+            Handles.EndGUI();
+        }
+
+        private void ModeHandler()
+        {
+            switch (_selectedMode)
+            {
+                case Mode.View:
+                    Tools.current = Tool.View;
+                    break;
+                case Mode.Paint:
+                case Mode.Edit:
+                case Mode.Erase:
+                    Tools.current = Tool.None;
+                    break;
+            }
+
+            if (_selectedMode != _currentMode)
+            {
+                _currentMode = _selectedMode;
+            }
+
+            SceneView.currentDrawingSceneView.in2DMode = true;
+        }
+
+        private void OnSceneGUI()
+        {
+            DrawModeGUI();
+            ModeHandler();
         }
         #endregion
 
